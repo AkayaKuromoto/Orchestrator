@@ -1,0 +1,379 @@
+openapi: 3.0.1
+info:
+  title: Orchestrator HTTP-API
+  description: ""
+  contact:
+    email: pascal@familie-theml.de
+  version: 1.0.0
+servers:
+  - url: /
+paths:
+  /images:
+    get:
+      tags:
+        - Image
+      summary: 'Get a list of images'
+      description: 'Returns the list of all local images. Filter is not working yet'
+      operationId: getImageList
+      responses:
+        200:
+          description: "List of all local images"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ImageInformationResponse'
+  /images/fs:
+    get:
+      tags:
+        - Image
+      summary: 'Information about the filesystem'
+      description: 'Returns information about filesystem used to store images'
+      operationId: getImageFsInformation
+      responses:
+        200:
+          description: "List of filesystems used to store images"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ImageFsInformationResponse'
+  /image:
+    get:
+      tags:
+        - Image
+      summary: 'Get information about specific image'
+      description: 'Returns information about a specific image'
+      operationId: getImageStatus
+      parameters:
+        - in: query
+          name: id
+          description: 'Id of image to get information about'
+          schema:
+            type: string
+        - in: query
+          name: annotations
+          description: 'Id of image to get information about'
+          schema:
+            type: object
+            additionalProperties:
+              type: string
+        - in: query
+          name: verbose
+          description: 'Whether extended information should be returned or not'
+          schema:
+            type: boolean
+      responses:
+        200:
+          description: 'Information of the image'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageStatusResponse'
+        400:
+          description: 'Either an id or annotations must be specified'
+    post:
+      tags:
+        - Image
+      summary: 'Send Pullrequest for Image'
+      description: 'Request to download an image with given name'
+      operationId: pullImage
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImagePullRequest'
+      responses:
+        200:
+          description: 'Returns Image ID'
+          content:
+            application/json:
+              schema:
+                type: string
+        400:
+          description: 'Request object is invalid'
+        404:
+          description: 'Specified image was not found in remote respository'
+    delete:
+      tags:
+        - Image
+      summary: 'Delete a local image'
+      description: 'Delete a local image whether it exists or not'
+      operationId: removeImage
+      parameters:
+        - in: query
+          name: id
+          description: 'Id of image to get information about'
+          schema:
+            type: string
+        - in: query
+          name: annotations
+          description: 'Id of image to get information about'
+          schema:
+            type: object
+            additionalProperties:
+              type: string
+      responses:
+        200:
+          description: 'Removed local image'
+          content:
+            application/json:
+              schema:
+                type: string
+        400:
+          description: 'Either an id or annotations must be specified'
+  /pods:
+    get:
+      tags:
+        - Pod
+      summary: 'Get list of pods'
+      description: 'Requests a list of pods'
+      operationId: getPodList
+      parameters:
+        - in: query
+          name: podId
+          description: 'Id(s) of pod to get'
+          schema:
+            type: array
+            items:
+              type: string
+        - in: query
+          name: podNamespace
+          description: 'Namespace of pods to delete'
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Returns a list of all pods'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PodResponse'
+    post:
+      tags:
+        - Pod
+      summary: 'Create pod with container'
+      description: 'Request to create a podsandbox with container'
+      operationId: createPod
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PodCreateRequest'
+      responses:
+        200:
+          description: 'Returns the container object'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PodResponse'
+        400:
+          description: 'Request object is invalid'
+        500:
+          description: 'Request cannot be fulfilled, server encounters problems'
+    delete:
+      tags:
+        - Pod
+      summary: 'Deletes a pod by id/namespace'
+      description: 'Deletes a pod with containers by given pod id or pod namespace'
+      operationId: deletePod
+      parameters:
+        - in: query
+          name: podId
+          description: 'Id of pod to delete'
+          schema:
+            type: string
+        - in: query
+          name: podNamespace
+          description: 'Namespace of pods to delete'
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Successfully deleted pod'
+        400:
+          description: 'Either an id or a namespace must be provided'
+components:
+  schemas:
+    MountPropagation:
+      type: string
+      enum:
+        - Private
+        - Host_to_Container
+        - Bidirectional
+    Mount:
+      type: object
+      properties:
+        container_path:
+          type: string
+        host_path:
+          type: string
+        read_only:
+          type: boolean
+        propagation:
+          $ref: '#/components/schemas/MountPropagation'
+    ImagePullRequest:
+      type: object
+      properties:
+        id:
+          type: string
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+
+
+
+
+
+
+
+
+    PodCreateRequest:
+      type: object
+      properties:
+        podName:
+          type: string
+        podNamespace:
+          type: string
+        container:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContainerCreateRequest'
+        attempt:
+          type: integer
+    ContainerCreateRequest:
+      type: object
+      properties:
+        containerName:
+          type: string
+        imageId:
+          type: string
+    PodResponse:
+      type: object
+      properties:
+        podId:
+          type: string
+        podName:
+          type: string
+        podNamespace:
+          type: string
+        state:
+          type: string
+        created_at:
+          type: integer
+          format: int64
+
+
+
+
+
+    ContainerStatusResponse:
+      type: object
+      properties:
+        containerId:
+          type: string
+        container_state:
+          type: string
+        created_at:
+          type: integer
+          format: int64
+        started_at:
+          type: integer
+          format: int64
+        finished_at:
+          type: integer
+          format: int64
+        exit_code:
+          type: integer
+        image_spec_image_id:
+          type: string
+        image_spec_annotations:
+          type: object
+          additionalProperties:
+            type: string
+        image_ref:
+          type: string
+        reason:
+          type: string
+        message:
+          type: string
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+        mounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Mount'
+        log_path:
+          type: string
+        info:
+          type: object
+          additionalProperties:
+            type: string
+
+
+
+
+
+
+    ImageFsInformationResponse:
+      type: object
+      properties:
+        timestamp:
+          type: integer
+          format: int64
+        fsMountPointId:
+          type: string
+        usedBytes:
+          type: integer
+          format: int64
+        inodesUsed:
+          type: integer
+          format: int64
+    ImageInformationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        repo_tags:
+          type: array
+          items:
+            type: string
+        repo_digests:
+          type: array
+          items:
+            type: string
+        size:
+          type: integer
+          format: int64
+        uid:
+          type: integer
+          format: int64
+        username:
+          type: string
+        imageName:
+          type: string
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+    ImageStatusResponse:
+      type: object
+      properties:
+        image:
+          $ref: '#/components/schemas/ImageInformationResponse'
+        verbose_information:
+          type: object
+          additionalProperties:
+            type: string
+        
