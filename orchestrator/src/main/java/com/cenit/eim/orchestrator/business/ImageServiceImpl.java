@@ -34,7 +34,7 @@ public class ImageServiceImpl implements ImageService{
     }
 
     @Override
-    public ImageStatusResponse getImageStatus(String imageId, Map<String, String> imageAnnotations, boolean verbose) {
-        return criService.getImageStatus(imageId, imageAnnotations, verbose);
+    public ImageStatusResponse getImageStatus(String imageId, boolean verbose) {
+        return criService.getImageStatus(imageId, verbose);
     }
 }

@@ -165,12 +165,13 @@
 						<configuration>
 							<inputSpec>${project.basedir}/src/main/resources/openapi.yaml</inputSpec>
 							<generatorName>spring</generatorName>
+							<modelNameSuffix>Dto</modelNameSuffix>
 							<configOptions>
+								<useBeanValidation>false</useBeanValidation>
 								<interfaceOnly>true</interfaceOnly>
 								<delegatePattern>false</delegatePattern>
-								<sourceFolder>com/cenit/orchestrator/generated</sourceFolder>
-								<basePackage>openapi</basePackage>
-								<groupId>openapi</groupId>
+								<apiPackage>com.cenit.eim.orchestrator.api</apiPackage>
+								<modelPackage>com.cenit.eim.orchestrator.api.model</modelPackage>
 							</configOptions>
 						</configuration>
 					</execution>

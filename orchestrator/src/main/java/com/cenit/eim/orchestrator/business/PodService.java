@@ -1,23 +1,39 @@
 package com.cenit.eim.orchestrator.business;
 
-import com.cenit.eim.orchestrator.model.Pod;
-import org.openapitools.model.PodCreateRequest;
+import com.cenit.eim.orchestrator.model.PodDef;
+import com.cenit.eim.orchestrator.api.model.PodDefinitionCreateRequestDto;
+import com.cenit.eim.orchestrator.model.PodInst;
 
 import java.util.List;
 
 public interface PodService {
 
-    List<Pod> getAllPods();
+    /* TODO Optimize */
+    List<PodDef> getAllPodDefinition();
 
-    Pod getPod(String podId, boolean verbose);
+    /* TODO Optimize */
+    List<PodDef> getPodDefinitionsByNames(List<String> podDefinitionNames);
 
-    String createPod(PodCreateRequest podCreateRequest);
+    /* TODO Optimize */
+    List<PodDef> getPodDefinitionsByNamespace(String podDefinitionNamespace);
 
-    void deletePodById(String podId, long timeout);
+    void createPodDefinition(PodDefinitionCreateRequestDto podCreateRequest);
 
-    void deletePodByNamespace(String podNamespace, long timeout);
+    PodInst createPodInst(PodDef podDef);
 
-    List<Pod> getPodsById(String... podId);
+    void deletePodDefinitionByNames(List<String> podDefinitionNames);
 
-    List<Pod> getPodsByNamespace(String podNamespace);
+    void deletePodDefinitionByNamespace(String podDefinitionNamespace);
+
+    void deletePodInst(String podId, int timeout);
+
+    PodDef getPodDefinitionByName(String podDefinitionName);
+
+//    void createContainerInst(String containerId, ContainerDef containerDef, PodInst podInst);
+
+//    /* TODO Optimize */
+//    void deletePodById(List<String> podIds);
+//
+//    /* TODO Optimize */
+//    void deletePodByNamespace(String podNamespace);
 }

@@ -1,11 +1,8 @@
 package com.cenit.eim.orchestrator.business;
 
 import com.cenit.eim.orchestrator.business.exception.ImageNotFoundException;
-import com.cenit.eim.orchestrator.business.model.ContainerResponse;
-import com.cenit.eim.orchestrator.model.Container;
-import com.cenit.eim.orchestrator.model.ContainerState;
-import com.cenit.eim.orchestrator.model.Pod;
-import com.cenit.eim.orchestrator.model.PodState;
+import com.cenit.eim.orchestrator.model.PodDef;
+import com.cenit.eim.orchestrator.model.ContainerDef;
 import io.grpc.ManagedChannel;
 import io.grpc.StatusRuntimeException;
 import io.grpc.netty.NettyChannelBuilder;
@@ -14,12 +11,10 @@ import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.unix.DomainSocketAddress;
 import org.springframework.stereotype.Service;
 import runtime.v1alpha2.*;
-import org.openapitools.model.ContainerCreateRequest;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 public class CRIServiceImpl implements CRIService {
@@ -39,66 +34,87 @@ public class CRIServiceImpl implements CRIService {
             ImageServiceGrpc.newBlockingStub(channel);
 
     @Override
-    public List<Pod> getAllPods() {
-        ListPodSandboxRequest listPodSandboxRequest = ListPodSandboxRequest.newBuilder().build().getDefaultInstanceForType();
+    public ListPodSandboxResponse getAllPods() {
+        PodSandboxFilter podSandboxFilter =
+                PodSandboxFilter.newBuilder()
+                        .putLabelSelector("podManagedBy", "orchestrator")
+                        .build();
 
-        ListPodSandboxResponse listPodSandboxResponse = runtimeServiceStub.listPodSandbox(listPodSandboxRequest);
+        ListPodSandboxRequest listPodSandboxRequest =
+                ListPodSandboxRequest.newBuilder()
+                        .setFilter(podSandboxFilter)
+                        .build();
 
-        return listPodSandboxResponse.getItemsList()
-                .stream()
-                .map(
-                        podSandbox -> new Pod(
-                                podSandbox.getId(),
-                                podSandbox.getMetadata().getName(),
-                                podSandbox.getMetadata().getNamespace(),
-                                PodState.getPodStateFromId(podSandbox.getStateValue())))
-                .collect(Collectors.toList());
+        return runtimeServiceStub.listPodSandbox(listPodSandboxRequest);
     }
 
     @Override
-    public Pod getPod(String podId, boolean verbose) {
+    public PodSandboxStatusResponse getPod(String podId, boolean verbose) {
         PodSandboxStatusRequest podSandboxStatusRequest =
                 PodSandboxStatusRequest.newBuilder()
                         .setPodSandboxId(podId)
                         .setVerbose(verbose)
                         .build();
 
-        PodSandboxStatusResponse podSandboxStatusResponse = runtimeServiceStub.podSandboxStatus(podSandboxStatusRequest);
-
-        return new Pod(
-                podSandboxStatusResponse.getStatus().getId(),
-                podSandboxStatusResponse.getStatus().getMetadata().getName(),
-                podSandboxStatusResponse.getStatus().getMetadata().getNamespace(),
-                PodState.getPodStateFromId(podSandboxStatusResponse.getStatus().getStateValue()));
+        return runtimeServiceStub.podSandboxStatus(podSandboxStatusRequest);
     }
 
     @Override
-    public Pod createPodWithContainers(String podName, String podUid, String podNamespace, List<ContainerCreateRequest> containerRequests, int attempt) {
-        Pod pod = createPodSandbox(podName,
-                podUid,
-                podNamespace,
-                attempt);
+    public ListContainersResponse getAllContainersByPod(String podId) {
+        ContainerFilter containerFilter =
+                ContainerFilter.newBuilder()
+                        .setPodSandboxId(podId)
+                        .build();
 
-        List<Container> containerList = new ArrayList<>();
+        ListContainersRequest listContainersRequest =
+                ListContainersRequest.newBuilder()
+                        .setFilter(containerFilter)
+                        .build();
 
-        for(ContainerCreateRequest containerRequest : containerRequests){
-            containerList.add(createContainer(pod,
-                    podName,
-                    podUid,
-                    podNamespace,
-                    containerRequest.getContainerName(),
-                    containerRequest.getImageId(),
-                    pod.getPodId(),
-                    attempt));
-        }
-
-        pod.setContainers(containerList);
-
-        return pod;
+        return runtimeServiceStub.listContainers(listContainersRequest);
     }
 
-    private Container createContainer(Pod pod, String podName, String podUid, String podNamespace, String containerName, String image, String podId, int attempt) {
-        PodSandboxConfig.Builder podSandboxConfig = createPodSandboxConfig(podName, podUid, podNamespace, attempt);
+    @Override
+    public RunPodSandboxResponse createPod(PodDef podDef, String uuid, int attempt) {
+        return createPodSandbox(podDef.getName(),
+                uuid,
+                podDef.getNamespace(),
+                podDef.getId(),
+                attempt);
+    }
+
+    @Override
+    public Map<ContainerDef, CreateContainerResponse> createContainersInPod(PodDef podDef, String podId, String uuid, int attempt){
+        Map<ContainerDef, CreateContainerResponse> responses = new HashMap<>();
+        for(ContainerDef containerDef : podDef.getContainers()){
+            CreateContainerResponse createContainerResponse = createContainer(
+                    podDef.getName(),
+                    uuid,
+                    podDef.getNamespace(),
+                    podDef.getId(),
+                    containerDef.getId(),
+                    containerDef.getContainerName(),
+                    containerDef.getImage(),
+                    podId,
+                    attempt);
+            responses.put(containerDef, createContainerResponse);
+            startContainer(createContainerResponse.getContainerId());
+        }
+
+        return responses;
+    }
+
+    private void startContainer(String containerId) {
+        StartContainerRequest startContainerRequest =
+                StartContainerRequest.newBuilder()
+                        .setContainerId(containerId)
+                        .build();
+
+        runtimeServiceStub.startContainer(startContainerRequest);
+    }
+
+    private CreateContainerResponse createContainer(String podName, String podUid, String podNamespace, Long podDefId, Long containerDefId, String containerName, String image, String podId, int attempt) {
+        PodSandboxConfig podSandboxConfig = createPodSandboxConfig(podName, podUid, podNamespace, podDefId, attempt);
 
         ContainerConfig config = ContainerConfig.newBuilder()
                 .setMetadata(
@@ -118,7 +134,7 @@ public class CRIServiceImpl implements CRIService {
 //                .setEnvs()
 //                .setMounts()
 //                .setDevices()
-//                .putLabels()
+//                .putLabels("containerDefId", String.valueOf(containerDefId))
 //                .putAnnotations()
 //                .setLogPath()
 //                .setLinux()
@@ -131,15 +147,11 @@ public class CRIServiceImpl implements CRIService {
                         .setSandboxConfig(podSandboxConfig)
                         .build();
 
-        CreateContainerResponse createContainerResponse = runtimeServiceStub.createContainer(containerCreateRequest);
-
-        ContainerResponse containerResponse = new ContainerResponse(createContainerResponse.getContainerId(), image);
-
-        return new Container(containerResponse.getContainerId(), ContainerState.CREATED, containerResponse.getContainerImage(), pod);
+        return runtimeServiceStub.createContainer(containerCreateRequest);
     }
 
-    private Pod createPodSandbox(String podName, String podUid, String podNamespace, int attempt) {
-        PodSandboxConfig.Builder podSandboxConfig = createPodSandboxConfig(podName, podUid, podNamespace, attempt);
+    private RunPodSandboxResponse createPodSandbox(String podName, String podUid, String podNamespace, Long podDefId, int attempt) {
+        PodSandboxConfig podSandboxConfig = createPodSandboxConfig(podName, podUid, podNamespace, podDefId, attempt);
 
         RunPodSandboxRequest podSandboxRequest =
                 RunPodSandboxRequest.newBuilder()
@@ -147,16 +159,10 @@ public class CRIServiceImpl implements CRIService {
 //                        .setRuntimeHandler()
                         .build();
 
-        RunPodSandboxResponse podSandboxResponse = runtimeServiceStub.runPodSandbox(podSandboxRequest);
-
-
-        return new Pod(podSandboxResponse.getPodSandboxId(),
-                podName,
-                podNamespace,
-                PodState.READY);
+        return runtimeServiceStub.runPodSandbox(podSandboxRequest);
     }
 
-    private PodSandboxConfig.Builder createPodSandboxConfig(String podName, String podUid, String podNamespace, int attempt){
+    private PodSandboxConfig createPodSandboxConfig(String podName, String podUid, String podNamespace, Long podDefId, int attempt){
         PodSandboxMetadata.Builder podSandboxMetadata =
                 PodSandboxMetadata.newBuilder()
                         .setName(podName)
@@ -165,37 +171,58 @@ public class CRIServiceImpl implements CRIService {
                         .setAttempt(attempt);
 
         return PodSandboxConfig.newBuilder()
-                .setMetadata(podSandboxMetadata);
+                .setMetadata(podSandboxMetadata)
 //            .setHostname()
 //            .setLogDirectory()
 //            .setDnsConfig()
 //            .setPortMappings()
-//            .putLabels()
+            .putLabels("podManagedBy", "orchestrator")
+//            .putLabels("podDefId", String.valueOf(podDefId));
 //            .putAnnotations()
 //            .setLinux()
 //            .setWindows();
+        .build();
     }
 
     @Override
     public void deletePodById(String podId, long timeout) {
-        List<Container> containers = getAllContainersFromPod(getPodById(podId));
+        PodSandbox podSandbox = getPodById(podId);
+        List<Container> containerList = getAllContainersFromPod(podSandbox).getContainersList();
 
-        for (Container container : containers){
-            stopContainer(container.getContainerId(), timeout);
+        for (Container container : containerList){
+            stopContainer(container.getId(), timeout);
+            removeContainer(container.getId());
         }
 
-        removePodSandboxById(podId);
+        stopPodSandbox(podId);
+        removePodSandbox(podId);
     }
 
-    @Override
-    public void deletePodByNamespace(String podNamespace, long timeout) {
-        List<Pod> pods = getPodsByNamespace(podNamespace);
+    private void removePodSandbox(String podId) {
+        RemovePodSandboxRequest removePodSandboxRequest =
+                RemovePodSandboxRequest.newBuilder()
+                        .setPodSandboxId(podId)
+                        .build();
 
-        pods.forEach(pod -> deletePodById(pod.getPodId(), timeout));
+        runtimeServiceStub.removePodSandbox(removePodSandboxRequest);
     }
 
-    private List<Pod> getPodsByNamespace(String podNamespace) {
-        return getAllPods().stream().filter(pod -> pod.getPodNamespace().equals(podNamespace)).collect(Collectors.toList());
+    private void stopPodSandbox(String podId) {
+        StopPodSandboxRequest stopPodSandboxRequest =
+                StopPodSandboxRequest.newBuilder()
+                        .setPodSandboxId(podId)
+                        .build();
+
+        runtimeServiceStub.stopPodSandbox(stopPodSandboxRequest);
+    }
+
+    private void removeContainer(String containerId){
+        RemoveContainerRequest removeContainerRequest =
+                RemoveContainerRequest.newBuilder()
+                        .setContainerId(containerId)
+                        .build();
+
+        runtimeServiceStub.removeContainer(removeContainerRequest);
     }
 
     private void stopContainer(String containerId, long timeout) {
@@ -208,10 +235,10 @@ public class CRIServiceImpl implements CRIService {
         runtimeServiceStub.stopContainer(stopContainerRequest);
     }
 
-    private List<Container> getAllContainersFromPod(Pod pod) {
+    private ListContainersResponse getAllContainersFromPod(PodSandbox pod) {
         ContainerFilter containerFilter =
                 ContainerFilter.newBuilder()
-                        .setPodSandboxId(pod.getPodId())
+                        .setPodSandboxId(pod.getId())
                         .build();
 
         ListContainersRequest listContainersRequest =
@@ -219,30 +246,12 @@ public class CRIServiceImpl implements CRIService {
                         .setFilter(containerFilter)
                         .build();
 
-        ListContainersResponse listContainersResponse = runtimeServiceStub.listContainers(listContainersRequest);
-
-        return listContainersResponse.getContainersList()
-                .stream()
-                .map(
-                        container -> new Container(
-                                container.getId(),
-                                ContainerState.getContainerStateFromId(container.getStateValue()),
-                                container.getImage().getImage(), pod))
-                .collect(Collectors.toList());
+        return runtimeServiceStub.listContainers(listContainersRequest);
     }
 
-    private void removePodSandboxById(String podId){
-        RemovePodSandboxRequest removePodSandboxRequest =
-                RemovePodSandboxRequest.newBuilder()
-                        .setPodSandboxId(podId)
-                        .build();
-
-        runtimeServiceStub.removePodSandbox(removePodSandboxRequest);
-    }
-
-    private Pod getPodById(String podId){
-        for(Pod pod : getAllPods()){
-            if(pod.getPodId().equals(podId)){
+    private PodSandbox getPodById(String podId){
+        for(PodSandbox pod : getAllPods().getItemsList()){
+            if(pod.getId().equals(podId)){
                 return pod;
             }
         }
@@ -266,11 +275,10 @@ public class CRIServiceImpl implements CRIService {
     }
 
     @Override
-    public ImageStatusResponse getImageStatus(String imageId, Map<String, String> imageAnnotations, boolean verbose) {
+    public ImageStatusResponse getImageStatus(String imageId, boolean verbose) {
         ImageSpec.Builder imageSpec =
                 ImageSpec.newBuilder()
-                        .setImage(imageId)
-                        .putAllAnnotations(imageAnnotations);
+                        .setImage(imageId);
 
         ImageStatusRequest.Builder imageStatusRequest =
                 ImageStatusRequest.newBuilder()
@@ -280,6 +288,7 @@ public class CRIServiceImpl implements CRIService {
         return imageServiceStub.imageStatus(imageStatusRequest.build());
     }
 
+    /* maybe return object not only string i need*/
     @Override
     public String pullImage(String imageId, Map<String, String> imageAnnotations) throws ImageNotFoundException {
         ImageSpec.Builder imageSpec =
@@ -302,6 +311,7 @@ public class CRIServiceImpl implements CRIService {
         return pullImageResponse.getImageRef();
     }
 
+    /* maybe return object not only string i need*/
     @Override
     public String removeImage(String imageId, Map<String, String> imageAnnotations) {
         ImageSpec.Builder imageSpec =

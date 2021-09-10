@@ -1,10 +1,16 @@
 package com.cenit.eim.orchestrator.web;
 
-import com.cenit.eim.orchestrator.model.Pod;
-import org.openapitools.model.ImageInformationResponse;
-import org.openapitools.model.ImageStatusResponse;
-import org.openapitools.model.PodResponse;
+import com.cenit.eim.orchestrator.model.ContainerDef;
+import com.cenit.eim.orchestrator.api.model.PodInstanceResponseDto;
+import com.cenit.eim.orchestrator.model.PodDef;
+import com.cenit.eim.orchestrator.api.model.ContainerDefinitionResponseDto;
+import com.cenit.eim.orchestrator.api.model.PodDefinitionDetailsResponseDto;
+import com.cenit.eim.orchestrator.api.model.PodDefinitionResponseDto;
+import com.cenit.eim.orchestrator.api.model.ImageInformationResponseDto;
+import com.cenit.eim.orchestrator.api.model.ImageStatusResponseDto;
+import com.cenit.eim.orchestrator.model.PodInst;
 import runtime.v1alpha2.Image;
+import runtime.v1alpha2.ImageStatusResponse;
 import runtime.v1alpha2.ListImagesResponse;
 
 import java.util.ArrayList;
@@ -13,46 +19,69 @@ import java.util.stream.Collectors;
 
 public class ResponseMapper {
 
-    public static PodResponse toResponse(Pod pod){
-        return new PodResponse()
-                .podId(pod.getPodId())
-                .podName(pod.getPodName())
-                .podNamespace(pod.getPodNamespace())
-                .state(pod.getState().toString());
+    public static PodDefinitionResponseDto toResponse(PodDef podDef){
+        return new PodDefinitionResponseDto()
+                .name(podDef.getName())
+                .namespace(podDef.getNamespace())
+                .desiredCount(podDef.getCount())
+                .actualCount(podDef.getPodInstances().size());
     }
 
-    public static List<PodResponse> toResponse(List<Pod> pods) {
-        return pods
+    public static List<PodDefinitionResponseDto> toResponse(List<PodDef> podDefInstList) {
+        return podDefInstList
                 .stream()
                 .map(ResponseMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
-    public static ImageInformationResponse toResponse(Image image){
-        return new ImageInformationResponse()
+    public static ImageInformationResponseDto toResponse(Image image){
+        return new ImageInformationResponseDto()
                 .id(image.getId())
                 .repoTags(new ArrayList<>(image.getRepoTagsList()))
                 .repoDigests(new ArrayList<>(image.getRepoDigestsList()))
                 .size(image.getSize())
-                .uid(image.getUid().getValue())
-                .username(image.getUsername())
-                .imageName(image.getSpec().getImage())
-                .annotations(image.getSpec().getAnnotationsMap());
+                .imageName(image.getSpec().getImage());
     }
 
-    public static List<ImageInformationResponse> toResponse(ListImagesResponse imagesResponse){
+    public static List<ImageInformationResponseDto> toResponse(ListImagesResponse imagesResponse){
         return imagesResponse.getImagesList()
                 .stream()
                 .map(ResponseMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
-    public static ImageStatusResponse toResponse(runtime.v1alpha2.ImageStatusResponse imageStatusResponse){
-        ImageInformationResponse imageInformationResponse =
+    public static ImageStatusResponseDto toResponse(ImageStatusResponse imageStatusResponse){
+        ImageInformationResponseDto imageInformationResponse =
                 ResponseMapper.toResponse(imageStatusResponse.getImage());
 
-        return new ImageStatusResponse()
+        return new ImageStatusResponseDto()
                 .image(imageInformationResponse)
                 .verboseInformation(imageStatusResponse.getInfoMap());
+    }
+
+    public static PodDefinitionDetailsResponseDto toResponseDetail(PodDef pod) {
+
+
+        return new PodDefinitionDetailsResponseDto()
+                .name(pod.getName())
+                .namespace(pod.getNamespace())
+                .desiredCount(pod.getCount())
+                .actualCount(pod.getPodInstances().size())
+                .createdAt(pod.getCreated_at())
+                .container(pod.getContainers().stream().map(ResponseMapper::toResponse).collect(Collectors.toList()))
+                .instances(pod.getPodInstances().stream().map(ResponseMapper::toResponse).collect(Collectors.toList()));
+    }
+
+    public static PodInstanceResponseDto toResponse(PodInst podInst){
+        return new PodInstanceResponseDto()
+                .id(podInst.getPodId())
+                .state(podInst.getState().toString())
+                .createdAt(podInst.getCreated_at());
+    }
+
+    public static ContainerDefinitionResponseDto toResponse(ContainerDef containerDef){
+        return new ContainerDefinitionResponseDto()
+                .name(containerDef.getContainerName())
+                .image(containerDef.getImage());
     }
 }

@@ -14,5 +14,5 @@ public interface ImageService {
 
     ListImagesResponse getImages();
 
-    ImageStatusResponse getImageStatus(String imageId, Map<String, String> imageAnnotations, boolean verbose);
+    ImageStatusResponse getImageStatus(String imageId, boolean verbose);
 }

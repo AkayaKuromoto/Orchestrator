@@ -6,74 +6,25 @@ info:
     email: pascal@familie-theml.de
   version: 1.0.0
 servers:
-  - url: /
+  - url: http://localhost:8080
+    description: 'Local testserver'
 paths:
   /images:
     get:
       tags:
         - Image
       summary: 'Get a list of images'
-      description: 'Returns the list of all local images. Filter is not working yet'
+      description: 'Returns the list of local-stored images'
       operationId: getImageList
       responses:
         200:
-          description: "List of all local images"
+          description: "List of local-stored images"
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/ImageInformationResponse'
-  /images/fs:
-    get:
-      tags:
-        - Image
-      summary: 'Information about the filesystem'
-      description: 'Returns information about filesystem used to store images'
-      operationId: getImageFsInformation
-      responses:
-        200:
-          description: "List of filesystems used to store images"
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ImageFsInformationResponse'
-  /image:
-    get:
-      tags:
-        - Image
-      summary: 'Get information about specific image'
-      description: 'Returns information about a specific image'
-      operationId: getImageStatus
-      parameters:
-        - in: query
-          name: id
-          description: 'Id of image to get information about'
-          schema:
-            type: string
-        - in: query
-          name: annotations
-          description: 'Id of image to get information about'
-          schema:
-            type: object
-            additionalProperties:
-              type: string
-        - in: query
-          name: verbose
-          description: 'Whether extended information should be returned or not'
-          schema:
-            type: boolean
-      responses:
-        200:
-          description: 'Information of the image'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ImageStatusResponse'
-        400:
-          description: 'Either an id or annotations must be specified'
     post:
       tags:
         - Image
@@ -124,53 +75,77 @@ paths:
                 type: string
         400:
           description: 'Either an id or annotations must be specified'
+  /images/{imageId}:
+    get:
+      tags:
+        - Image
+      summary: 'Get information about specific image'
+      description: 'Returns information about a specific image'
+      operationId: getImageStatus
+      parameters:
+        - in: path
+          name: imageId
+          description: 'Id of image to get information about'
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: verbose
+          description: 'Whether extended information should be returned or not'
+          schema:
+            type: boolean
+      responses:
+        200:
+          description: 'Information of the image'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageStatusResponse'
+        400:
+          description: 'Either an id or annotations must be specified'
   /pods:
     get:
       tags:
         - Pod
-      summary: 'Get list of pods'
-      description: 'Requests a list of pods'
-      operationId: getPodList
+      summary: 'Get a list of pod definitions'
+      description: 'Requests a list of pod definitions'
+      operationId: getPodDefinitionList
       parameters:
         - in: query
-          name: podId
-          description: 'Id(s) of pod to get'
+          name: podDefinitionNames
+          description: 'Name(s) of pod definition(s) to get'
           schema:
             type: array
             items:
               type: string
         - in: query
-          name: podNamespace
-          description: 'Namespace of pods to delete'
+          name: podDefinitionNamespace
+          description: 'Namespace of pod definitions to get'
           schema:
             type: string
       responses:
         200:
-          description: 'Returns a list of all pods'
+          description: 'Returns a list of pod definitions'
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/PodResponse'
+                  $ref: '#/components/schemas/PodDefinitionResponse'
     post:
       tags:
         - Pod
-      summary: 'Create pod with container'
-      description: 'Request to create a podsandbox with container'
-      operationId: createPod
+      summary: 'Create pod definition with container'
+      description: 'Request to create a pod definition with container'
+      operationId: createPodDefinition
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PodCreateRequest'
+              $ref: '#/components/schemas/PodDefinitionCreateRequest'
       responses:
         200:
-          description: 'Returns the container object'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PodResponse'
+          description: 'Request was successful'
         400:
           description: 'Request object is invalid'
         500:
@@ -178,89 +153,115 @@ paths:
     delete:
       tags:
         - Pod
-      summary: 'Deletes a pod by id/namespace'
-      description: 'Deletes a pod with containers by given pod id or pod namespace'
-      operationId: deletePod
+      summary: 'Deletes a pod definition by name/namespace'
+      description: 'Deletes a pod definition with containers by given pod definition name or pod definition namespace'
+      operationId: deletePodDefinition
       parameters:
         - in: query
-          name: podId
-          description: 'Id of pod to delete'
+          name: podDefinitionNames
+          description: 'Name(s) of pod definition(s) to delete'
           schema:
-            type: string
+            type: array
+            items:
+              type: string
         - in: query
-          name: podNamespace
-          description: 'Namespace of pods to delete'
+          name: podDefinitionNamespace
+          description: 'Namespace of pod definitions to delete'
           schema:
             type: string
       responses:
         200:
-          description: 'Successfully deleted pod'
+          description: 'Successfully deleted pod definition'
         400:
           description: 'Either an id or a namespace must be provided'
+  /pods/{podDefinitionName}:
+    get:
+      tags:
+        - Pod
+      summary: 'Get a pod definition'
+      description: 'Request to get a pod definition by name'
+      operationId: getPodDefinitionByName
+      parameters:
+        - in: path
+          name: podDefinitionName
+          required: true
+          description: 'Name of the pod definition to get'
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Returns a pod definition with detailed information'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PodDefinitionDetailsResponse'
 components:
   schemas:
-    MountPropagation:
-      type: string
-      enum:
-        - Private
-        - Host_to_Container
-        - Bidirectional
-    Mount:
+
+    PodDefinitionCreateRequest:
       type: object
       properties:
-        container_path:
+        name:
           type: string
-        host_path:
+        namespace:
           type: string
-        read_only:
-          type: boolean
-        propagation:
-          $ref: '#/components/schemas/MountPropagation'
-    ImagePullRequest:
-      type: object
-      properties:
-        id:
-          type: string
-        annotations:
-          type: object
-          additionalProperties:
-            type: string
-
-
-
-
-
-
-
-
-    PodCreateRequest:
-      type: object
-      properties:
-        podName:
-          type: string
-        podNamespace:
-          type: string
-        container:
+        count:
+          type: integer
+        containers:
           type: array
           items:
-            $ref: '#/components/schemas/ContainerCreateRequest'
-        attempt:
-          type: integer
-    ContainerCreateRequest:
+            $ref: '#/components/schemas/ContainerDefinitionCreateRequest'
+    ContainerDefinitionCreateRequest:
       type: object
       properties:
-        containerName:
+        name:
           type: string
         imageId:
           type: string
-    PodResponse:
+    PodDefinitionResponse:
       type: object
       properties:
-        podId:
+        name:
           type: string
-        podName:
+        namespace:
           type: string
-        podNamespace:
+        desiredCount:
+          type: integer
+        actualCount:
+          type: integer
+    PodDefinitionDetailsResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+        desiredCount:
+          type: integer
+        actualCount:
+          type: integer
+        created_at:
+          type: integer
+          format: int64
+        containerDefinitions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContainerDefinitionResponse'
+        instances:
+          type: array
+          items:
+            $ref: '#/components/schemas/PodInstanceResponse'
+    ContainerDefinitionResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        image:
+          type: string
+    PodInstanceResponse:
+      type: object
+      properties:
+        id:
           type: string
         state:
           type: string
@@ -270,76 +271,15 @@ components:
 
 
 
-
-
-    ContainerStatusResponse:
+    ImagePullRequest:
       type: object
       properties:
-        containerId:
+        id:
           type: string
-        container_state:
-          type: string
-        created_at:
-          type: integer
-          format: int64
-        started_at:
-          type: integer
-          format: int64
-        finished_at:
-          type: integer
-          format: int64
-        exit_code:
-          type: integer
-        image_spec_image_id:
-          type: string
-        image_spec_annotations:
-          type: object
-          additionalProperties:
-            type: string
-        image_ref:
-          type: string
-        reason:
-          type: string
-        message:
-          type: string
-        labels:
-          type: object
-          additionalProperties:
-            type: string
         annotations:
           type: object
           additionalProperties:
             type: string
-        mounts:
-          type: array
-          items:
-            $ref: '#/components/schemas/Mount'
-        log_path:
-          type: string
-        info:
-          type: object
-          additionalProperties:
-            type: string
-
-
-
-
-
-
-    ImageFsInformationResponse:
-      type: object
-      properties:
-        timestamp:
-          type: integer
-          format: int64
-        fsMountPointId:
-          type: string
-        usedBytes:
-          type: integer
-          format: int64
-        inodesUsed:
-          type: integer
-          format: int64
     ImageInformationResponse:
       type: object
       properties:
@@ -356,17 +296,8 @@ components:
         size:
           type: integer
           format: int64
-        uid:
-          type: integer
-          format: int64
-        username:
-          type: string
         imageName:
           type: string
-        annotations:
-          type: object
-          additionalProperties:
-            type: string
     ImageStatusResponse:
       type: object
       properties:
@@ -376,4 +307,3 @@ components:
           type: object
           additionalProperties:
             type: string
-        
