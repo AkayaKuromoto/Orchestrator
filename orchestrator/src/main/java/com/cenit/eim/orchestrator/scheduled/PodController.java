@@ -17,7 +17,6 @@ public class PodController {
 
     private final PodDefDAO podDefDAO;
     private final PodInstDAO podInstDAO;
-
     private final PodService podService;
 
     @Autowired
@@ -31,15 +30,13 @@ public class PodController {
     @Scheduled(fixedDelay = 1000)
     public void run() {
         checkIfPodsDefinitionsAreScaledUpOrDown();
-
         checkIfPodsDefinitionsWereDeleted();
     }
 
     private void checkIfPodsDefinitionsWereDeleted() {
         List<PodInst> podInstList = podInstDAO.findAll();
-
-        for(PodInst podInst : podInstList){
-            if(podInst.getPod() == null){
+        for (PodInst podInst : podInstList) {
+            if (podInst.getPod() == null) {
                 podService.deletePodInst(podInst.getPodId(), 1000);
             }
         }
@@ -47,21 +44,18 @@ public class PodController {
 
     private void checkIfPodsDefinitionsAreScaledUpOrDown() {
         List<PodDef> podDefList = podDefDAO.findAll();
-
-        for(PodDef podDef : podDefList){
+        for (PodDef podDef : podDefList) {
             int podDiff = podDef.getPodInstances().size() - podDef.getCount();
-
-            while(podDiff != 0){
-                if(podDiff < 0){
+            while (podDiff != 0) {
+                if (podDiff < 0) {
                     podService.createPodInst(podDef);
                     podDiff++;
                 }
-                if(podDiff > 0){
-                    podService.deletePodInst(podDef.getPodInstances().get(podDiff-1).getPodId(), 1000);
+                if (podDiff > 0) {
+                    podService.deletePodInst(podDef.getPodInstances().get(podDiff - 1).getPodId(), 1000);
                     podDiff--;
                 }
             }
-
         }
     }
 }

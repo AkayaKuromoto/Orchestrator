@@ -8,13 +8,10 @@ import java.util.List;
 
 public interface PodService {
 
-    /* TODO Optimize */
     List<PodDef> getAllPodDefinition();
 
-    /* TODO Optimize */
     List<PodDef> getPodDefinitionsByNames(List<String> podDefinitionNames);
 
-    /* TODO Optimize */
     List<PodDef> getPodDefinitionsByNamespace(String podDefinitionNamespace);
 
     void createPodDefinition(PodDefinitionCreateRequestDto podCreateRequest);
@@ -29,11 +26,5 @@ public interface PodService {
 
     PodDef getPodDefinitionByName(String podDefinitionName);
 
-//    void createContainerInst(String containerId, ContainerDef containerDef, PodInst podInst);
-
-//    /* TODO Optimize */
-//    void deletePodById(List<String> podIds);
-//
-//    /* TODO Optimize */
-//    void deletePodByNamespace(String podNamespace);
+    void deletePodDefinitionByName(String podDefinitionName);
 }

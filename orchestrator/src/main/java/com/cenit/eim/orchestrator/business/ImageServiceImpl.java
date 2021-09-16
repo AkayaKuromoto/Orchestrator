@@ -6,21 +6,28 @@ import org.springframework.stereotype.Service;
 import runtime.v1alpha2.ImageStatusResponse;
 import runtime.v1alpha2.ListImagesResponse;
 
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
-public class ImageServiceImpl implements ImageService{
+public class ImageServiceImpl implements ImageService {
 
     private final CRIService criService;
 
     @Autowired
-    public ImageServiceImpl(CRIService criService){
+    public ImageServiceImpl(CRIService criService) {
         this.criService = criService;
     }
 
     @Override
-    public String removeImage(String imageId, Map<String, String> imageAnnotations) {
-        return criService.removeImage(imageId, imageAnnotations);
+    public void removeImage(String imageId) {
+        criService.removeImage(imageId);
+    }
+
+    @Override
+    public void removeImages(List<String> imageIds) {
+        imageIds.stream().map(imageId -> criService.removeImage(imageId));
     }
 
     @Override

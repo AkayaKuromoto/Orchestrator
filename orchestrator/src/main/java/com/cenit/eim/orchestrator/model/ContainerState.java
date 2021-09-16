@@ -9,14 +9,14 @@ public enum ContainerState {
         this.id = id;
     }
 
-    public static ContainerState getContainerStateFromId(int containerStateId){
-        if(containerStateId == 0){
+    public static ContainerState getContainerStateFromId(int containerStateId) {
+        if (containerStateId == 0) {
             return CREATED;
         }
-        if(containerStateId == 1){
+        if (containerStateId == 1) {
             return RUNNING;
         }
-        if(containerStateId == 2){
+        if (containerStateId == 2) {
             return EXITED;
         }
         return UNKNOWN;

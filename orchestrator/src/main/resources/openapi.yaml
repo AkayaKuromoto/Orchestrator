@@ -9,7 +9,7 @@ servers:
   - url: http://localhost:8080
     description: 'Local testserver'
 paths:
-  /images:
+  /image:
     get:
       tags:
         - Image
@@ -25,10 +25,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ImageInformationResponse'
+        500:
+          description: 'Request cannot be fulfilled, server encounters problems'
     post:
       tags:
         - Image
-      summary: 'Send Pullrequest for Image'
+      summary: 'Pull an Image'
       description: 'Request to download an image with given name'
       operationId: pullImage
       requestBody:
@@ -47,35 +49,30 @@ paths:
           description: 'Request object is invalid'
         404:
           description: 'Specified image was not found in remote respository'
+        500:
+          description: 'Request cannot be fulfilled, server encounters problems'
     delete:
       tags:
         - Image
-      summary: 'Delete a local image'
-      description: 'Delete a local image whether it exists or not'
-      operationId: removeImage
+      summary: 'Delete local images with given imageIds'
+      description: 'Delete a local image whether it exists or not if matching given imageIds criteria'
+      operationId: removeImages
       parameters:
         - in: query
-          name: id
-          description: 'Id of image to get information about'
+          name: imageId
+          description: 'Id(s) of image to delete'
           schema:
-            type: string
-        - in: query
-          name: annotations
-          description: 'Id of image to get information about'
-          schema:
-            type: object
-            additionalProperties:
+            type: array
+            items:
               type: string
       responses:
         200:
-          description: 'Removed local image'
-          content:
-            application/json:
-              schema:
-                type: string
+          description: 'Removed local image(s)'
         400:
-          description: 'Either an id or annotations must be specified'
-  /images/{imageId}:
+          description: 'ImageId must be specified'
+        500:
+          description: 'Request cannot be fulfilled, server encounters problems'
+  /image/{imageId}:
     get:
       tags:
         - Image
@@ -102,8 +99,30 @@ paths:
               schema:
                 $ref: '#/components/schemas/ImageStatusResponse'
         400:
-          description: 'Either an id or annotations must be specified'
-  /pods:
+          description: 'ImageId must be specified'
+        500:
+          description: 'Request cannot be fulfilled, server encounters problems'
+    delete:
+      tags:
+        - Image
+      summary: 'Delete specific image'
+      description: 'Request to delete a specific image'
+      operationId: removeImage
+      parameters:
+        - in: path
+          name: imageId
+          description: 'Id of image to get information about'
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Removed local image'
+        400:
+          description: 'ImageId must be specified'
+        500:
+          description: 'Request cannot be fulfilled, server encounters problems'
+  /pod:
     get:
       tags:
         - Pod
@@ -132,6 +151,10 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/PodDefinitionResponse'
+        400:
+          description: 'Either a podDefinitionName or podDefinitionNamespace must be specified'
+        500:
+          description: 'Request cannot be fulfilled, server encounters problems'
     post:
       tags:
         - Pod
@@ -155,7 +178,7 @@ paths:
         - Pod
       summary: 'Deletes a pod definition by name/namespace'
       description: 'Deletes a pod definition with containers by given pod definition name or pod definition namespace'
-      operationId: deletePodDefinition
+      operationId: deletePodDefinitions
       parameters:
         - in: query
           name: podDefinitionNames
@@ -174,7 +197,9 @@ paths:
           description: 'Successfully deleted pod definition'
         400:
           description: 'Either an id or a namespace must be provided'
-  /pods/{podDefinitionName}:
+        500:
+          description: 'Request cannot be fulfilled, server encounters problems'
+  /pod/{podDefinitionName}:
     get:
       tags:
         - Pod
@@ -195,9 +220,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PodDefinitionDetailsResponse'
+        500:
+          description: 'Request cannot be fulfilled, server encounters problems'
+    delete:
+      tags:
+        - Pod
+      summary: 'Delete specific pod definition'
+      description: 'Request to delete a specific pod definition'
+      operationId: deletePodDefinition
+      parameters:
+        - in: path
+          name: podDefinitionName
+          required: true
+          description: 'Name of the pod definition to delete'
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Pod definition was deleted'
+        500:
+          description: 'Request cannot be fulfilled, server encounters problems'
 components:
   schemas:
-
     PodDefinitionCreateRequest:
       type: object
       properties:
@@ -268,9 +312,6 @@ components:
         created_at:
           type: integer
           format: int64
-
-
-
     ImagePullRequest:
       type: object
       properties:

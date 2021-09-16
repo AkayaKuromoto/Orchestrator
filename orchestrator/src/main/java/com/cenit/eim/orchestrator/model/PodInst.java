@@ -4,7 +4,7 @@ import javax.persistence.*;
 import java.util.List;
 
 @Entity
-public class PodInst extends BusinessEntity{
+public class PodInst extends BusinessEntity {
 
     @Column
     private String podId;

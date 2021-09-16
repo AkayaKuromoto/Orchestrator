@@ -5,7 +5,7 @@ import javax.persistence.Entity;
 import javax.persistence.ManyToOne;
 
 @Entity
-public class ContainerInst extends BusinessEntity{
+public class ContainerInst extends BusinessEntity {
 
     @Column(unique = true, updatable = false)
     private String containerId;
