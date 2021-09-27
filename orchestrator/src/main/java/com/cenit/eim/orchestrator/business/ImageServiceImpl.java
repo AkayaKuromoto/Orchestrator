@@ -27,7 +27,7 @@ public class ImageServiceImpl implements ImageService {
 
     @Override
     public void removeImages(List<String> imageIds) {
-        imageIds.stream().map(imageId -> criService.removeImage(imageId));
+        imageIds.forEach(imageId -> criService.removeImage(imageId));
     }
 
     @Override
