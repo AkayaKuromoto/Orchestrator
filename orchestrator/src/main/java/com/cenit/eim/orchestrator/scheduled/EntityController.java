@@ -34,14 +34,10 @@ public class EntityController {
     public void run() {
         List<PodSandbox> podSandboxList = criService.getAllPods().getItemsList();
         List<PodInst> podInstList = podInstDAO.findAll();
-        for (PodInst podInst : podInstList) {
-            boolean hasPodInstance = false;
-            for (PodSandbox podSandbox : podSandboxList) {
-                hasPodInstance |= podInst.getPodId().equals(podSandbox.getId());
-            }
-            if (!hasPodInstance) {
+        podInstList.forEach(podInst -> {
+            if(podSandboxList.stream().noneMatch(podSandbox -> podSandbox.getId().equals(podInst.getPodId()))){
                 podService.deletePodInst(podInst.getPodId(), 1000);
             }
-        }
+        });
     }
 }
