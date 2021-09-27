@@ -1,0 +1,350 @@
+openapi: 3.0.1
+info:
+  title: Orchestrator HTTP-API
+  description: ""
+  contact:
+    email: pascal@familie-theml.de
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: 'Local testserver'
+paths:
+  /image:
+    get:
+      tags:
+        - Image
+      summary: 'Get a list of images'
+      description: 'Returns the list of local-stored images'
+      operationId: getImageList
+      responses:
+        200:
+          description: "List of local-stored images"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ImageInformationResponse'
+        500:
+          description: 'Request cannot be fulfilled, server encounters problems'
+    post:
+      tags:
+        - Image
+      summary: 'Pull an Image'
+      description: 'Request to download an image with given name'
+      operationId: pullImage
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImagePullRequest'
+      responses:
+        200:
+          description: 'Returns Image ID'
+          content:
+            application/json:
+              schema:
+                type: string
+        400:
+          description: 'Request object is invalid'
+        404:
+          description: 'Specified image was not found in remote respository'
+        500:
+          description: 'Request cannot be fulfilled, server encounters problems'
+    delete:
+      tags:
+        - Image
+      summary: 'Delete local images with given imageIds'
+      description: 'Delete a local image whether it exists or not if matching given imageIds criteria'
+      operationId: removeImages
+      parameters:
+        - in: query
+          name: imageId
+          description: 'Id(s) of image to delete'
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        200:
+          description: 'Removed local image(s)'
+        400:
+          description: 'ImageId must be specified'
+        500:
+          description: 'Request cannot be fulfilled, server encounters problems'
+  /image/{imageId}:
+    get:
+      tags:
+        - Image
+      summary: 'Get information about specific image'
+      description: 'Returns information about a specific image'
+      operationId: getImageStatus
+      parameters:
+        - in: path
+          name: imageId
+          description: 'Id of image to get information about'
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: verbose
+          description: 'Whether extended information should be returned or not'
+          schema:
+            type: boolean
+      responses:
+        200:
+          description: 'Information of the image'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageStatusResponse'
+        400:
+          description: 'ImageId must be specified'
+        500:
+          description: 'Request cannot be fulfilled, server encounters problems'
+    delete:
+      tags:
+        - Image
+      summary: 'Delete specific image'
+      description: 'Request to delete a specific image'
+      operationId: removeImage
+      parameters:
+        - in: path
+          name: imageId
+          description: 'Id of image to get information about'
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Removed local image'
+        400:
+          description: 'ImageId must be specified'
+        500:
+          description: 'Request cannot be fulfilled, server encounters problems'
+  /pod:
+    get:
+      tags:
+        - Pod
+      summary: 'Get a list of pod definitions'
+      description: 'Requests a list of pod definitions'
+      operationId: getPodDefinitionList
+      parameters:
+        - in: query
+          name: podDefinitionNames
+          description: 'Name(s) of pod definition(s) to get'
+          schema:
+            type: array
+            items:
+              type: string
+        - in: query
+          name: podDefinitionNamespace
+          description: 'Namespace of pod definitions to get'
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Returns a list of pod definitions'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PodDefinitionResponse'
+        400:
+          description: 'Either a podDefinitionName or podDefinitionNamespace must be specified'
+        500:
+          description: 'Request cannot be fulfilled, server encounters problems'
+    post:
+      tags:
+        - Pod
+      summary: 'Create pod definition with container'
+      description: 'Request to create a pod definition with container'
+      operationId: createPodDefinition
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PodDefinitionCreateRequest'
+      responses:
+        200:
+          description: 'Request was successful'
+        400:
+          description: 'Request object is invalid'
+        500:
+          description: 'Request cannot be fulfilled, server encounters problems'
+    delete:
+      tags:
+        - Pod
+      summary: 'Deletes a pod definition by name/namespace'
+      description: 'Deletes a pod definition with containers by given pod definition name or pod definition namespace'
+      operationId: deletePodDefinitions
+      parameters:
+        - in: query
+          name: podDefinitionNames
+          description: 'Name(s) of pod definition(s) to delete'
+          schema:
+            type: array
+            items:
+              type: string
+        - in: query
+          name: podDefinitionNamespace
+          description: 'Namespace of pod definitions to delete'
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Successfully deleted pod definition'
+        400:
+          description: 'Either an id or a namespace must be provided'
+        500:
+          description: 'Request cannot be fulfilled, server encounters problems'
+  /pod/{podDefinitionName}:
+    get:
+      tags:
+        - Pod
+      summary: 'Get a pod definition'
+      description: 'Request to get a pod definition by name'
+      operationId: getPodDefinitionByName
+      parameters:
+        - in: path
+          name: podDefinitionName
+          required: true
+          description: 'Name of the pod definition to get'
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Returns a pod definition with detailed information'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PodDefinitionDetailsResponse'
+        500:
+          description: 'Request cannot be fulfilled, server encounters problems'
+    delete:
+      tags:
+        - Pod
+      summary: 'Delete specific pod definition'
+      description: 'Request to delete a specific pod definition'
+      operationId: deletePodDefinition
+      parameters:
+        - in: path
+          name: podDefinitionName
+          required: true
+          description: 'Name of the pod definition to delete'
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Pod definition was deleted'
+        500:
+          description: 'Request cannot be fulfilled, server encounters problems'
+components:
+  schemas:
+    PodDefinitionCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+        count:
+          type: integer
+        containers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContainerDefinitionCreateRequest'
+    ContainerDefinitionCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        imageId:
+          type: string
+    PodDefinitionResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+        desiredCount:
+          type: integer
+        actualCount:
+          type: integer
+    PodDefinitionDetailsResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+        desiredCount:
+          type: integer
+        actualCount:
+          type: integer
+        created_at:
+          type: integer
+          format: int64
+        containerDefinitions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContainerDefinitionResponse'
+        instances:
+          type: array
+          items:
+            $ref: '#/components/schemas/PodInstanceResponse'
+    ContainerDefinitionResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        image:
+          type: string
+    PodInstanceResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        state:
+          type: string
+        created_at:
+          type: integer
+          format: int64
+    ImagePullRequest:
+      type: object
+      properties:
+        id:
+          type: string
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+    ImageInformationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        repo_tags:
+          type: array
+          items:
+            type: string
+        repo_digests:
+          type: array
+          items:
+            type: string
+        size:
+          type: integer
+          format: int64
+        imageName:
+          type: string
+    ImageStatusResponse:
+      type: object
+      properties:
+        image:
+          $ref: '#/components/schemas/ImageInformationResponse'
+        verbose_information:
+          type: object
+          additionalProperties:
+            type: string
