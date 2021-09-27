@@ -126,7 +126,7 @@
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<version>2.5.4</version>
 				<configuration>
-					<mainClass>com.cenit.eim.orchestrator.OrchestratorApplication.java</mainClass>
+					<mainClass>com.cenit.eim.orchestrator.OrchestratorApplication</mainClass>
 				</configuration>
 			</plugin>
 			<plugin>
