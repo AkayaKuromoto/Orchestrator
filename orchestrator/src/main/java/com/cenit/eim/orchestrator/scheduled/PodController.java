@@ -34,11 +34,9 @@ public class PodController {
     }
 
     private void checkIfPodsDefinitionsWereDeleted() {
-        List<PodInst> podInstList = podInstDAO.findAll();
+        List<PodInst> podInstList = podInstDAO.findPodInstsByPodDefIsNull();
         for (PodInst podInst : podInstList) {
-            if (podInst.getPod() == null) {
-                podService.deletePodInst(podInst.getPodId(), 1000);
-            }
+            podService.deletePodInst(podInst.getPodId(), 1000);
         }
     }
 
