@@ -1,8 +1,11 @@
 # Orchestrator
-Der Prototyp kann auf Linux ausgeführt werden. 
-Um die prototypische Implementierung anzuwenden, muss zuvor containerd mit CNI-Plugins installiert werden.
-```sudo apt install containerd containernetworking-plugins```
 
-Mit Maven kann eine JAR-Datei generiert werden. ```mvn clean install```  
-Vor dem Start muss containerd gestartet werden.  
-Hierfür kann das Skript ``run.sh`` mit sudo ausgeführt werden.Es wird containerd gestartet und die Berechtigungen entsprechend angepasst.
+Der Prototyp kann auf Linux ausgeführt werden.  
+
+Um die Anwendung zu starten, kann das ```run.sh``` Skript mit sudo ausgefürt werden. Das Skript führt nachstehende Schritte aus, die sonst manuell durchgeführt werden müssen.
+
+1)  Maven installieren ```sudo apt install maven```
+2)  Mit Maven JAR-Datei generieren ```mvn clean install```
+3)  containerd installieren ```apt install containerd containernetworking-plugins```
+4)  containerd starten und entsprechende Rechte des Unix Sockets anpassen
+5)  Jar ausführen
