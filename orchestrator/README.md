@@ -21,3 +21,5 @@ Anlegen eines Pods:
 
 Abfrage von Pods:  
 ```curl http://localhost:8080/pod```
+
+####Bei Fragen bitte unter pascal@familie-theml.de melden.
