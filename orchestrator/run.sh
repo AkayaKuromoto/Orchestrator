@@ -30,6 +30,6 @@ cat >/etc/cni/net.d/99-loopback.conf <<EOF
 EOF
 
 mkdir -p /opt/cni/bin
-cp /usr/lic/cni/. /opt/cni/bin -r
+cp /usr/lib/cni/. /opt/cni/bin -r
 
 ./scripts/grant-permission.sh & ./scripts/start-containerd.sh
